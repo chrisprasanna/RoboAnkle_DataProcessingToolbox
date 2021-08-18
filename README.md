@@ -1,5 +1,5 @@
 # RoboAnkle_DataProcessingToolbox
-This directory contains all data processing scripts used during the robotic ankle-foot prosthesis experiments incoling human participants. 
+This directory contains all data processing scripts used during the robotic ankle-foot prosthesis experiments involving human participants. 
 
 ## Usage
 - **cp_poweredAnkle_tui**: main script that can run continuously suring data collections. Follow the text-based commands once new data files are available for processing. 
