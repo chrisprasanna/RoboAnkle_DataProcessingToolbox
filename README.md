@@ -10,3 +10,6 @@ This directory contains all data processing scripts used during the robotic ankl
 - **cp_labview_process_data**: processes logged embedded sensor and control command data from the [robotic prosthesis controller](https://github.com/chrisprasanna/RoboAnkle_Controller).
 - **cp_vicon_process_subject**: processes subject-specific metadata. 
 - **cp_Phi**: uses sampled force plate and thigh-mounted IMU data to compute offline phase variable calculations. 
+
+## Acknowledgements 
+- This code was modified from the [biomech tb toolbox](https://github.com/jonreal/biomechtb)
