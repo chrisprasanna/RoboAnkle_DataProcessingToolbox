@@ -1,5 +1,8 @@
 function rtn = cp_poweredAnkle_tui(varargin)
 %%
+% *** Restore marker trajectories and linear map encoder values ***
+
+%%
 % cp_poweredAnkle_tui  Text based user interface for iterative learning control.
 %
 %   cp_poweredAnkle_tui() default configuration.
@@ -12,12 +15,17 @@ nVarArgs = length(varargin);
 
 
 % Defauts Settings
-processVicon = 0;
+processVicon = 1;
 
 % algorithm setting
-gain = 1;
-maxharmonic = 10;
+gain = 0.5; % 1
+maxharmonic = 10; % 10
 smooth_vector = [90,5];
+zeta = 1; % 1.5
+alpha = 0.5;
+adapt = 'gain';
+model = 'average';
+backstepping = 'off';
 
 % Motor 3 settings
 k_t = 10.2/1000;
@@ -87,7 +95,8 @@ xlim([-0.3,maxharmonic+0.5])
 l = legend([h_E_bar_v_f,h_E_bar_v_f_p_gamma,h_E_v_f], ...
     {'$E^*_k$','$E^*_k + \gamma$', '$E_k$'});
 set(l,'interpreter','latex', ...
-    'Position', [0.0446 0.5507 0.0571  0.0726]);
+    'Position', [0.0446 0.57 0.0571  0.0726],...
+    'FontSize',10);
 
 
 % |U_k| v freq.
@@ -102,7 +111,8 @@ xlim([-0.3,maxharmonic+0.5])
 l = legend([h_U_bar_v_f,h_U_v_f,h_U_kp1_v_f], ...
     {'$U^*_k$','$U_k$','$U_{k+1}$'});
 set(l,'interpreter','latex', ...
-    'Position',[0.0581    0.2779    0.0400    0.0500]);
+    'Position',[0.0581    0.2779    0.0400    0.0500],...
+    'FontSize',10);
 
 
 
@@ -118,8 +128,8 @@ xlim([-0.3,maxharmonic+0.5])
 subplot(3,3,2:3); hold all;
 h_title = title(['Iteration = ', num2str(0)], ...
     'interpreter','latex','fontsize',17);
-h_y_v_t = plot(gaitCycle,0.*gaitCycle,'k');
-h_yd_v_t = plot(gaitCycle,0.*gaitCycle,'r');
+h_yd_v_t = plot(gaitCycle,0.*gaitCycle,'k');
+h_y_v_t = plot(gaitCycle,0.*gaitCycle,'r');
 h_u_k_v_t = plot(gaitCycle,0.*gaitCycle,'g');
 h_u_kp1_v_t = plot(gaitCycle,0.*gaitCycle,'c');
 h_e_kp1_v_t = plot(gaitCycle,0.*gaitCycle,'m');
@@ -131,9 +141,10 @@ l = legend([h_y_v_t,h_yd_v_t,h_u_k_v_t,h_u_kp1_v_t,h_e_kp1_v_t], ...
     {'$\tilde{\theta}_{p,k}$','$\tilde{\theta}_{b,k}$', ...
     '$\tilde{\theta}_{v,k}$', ...
     '$\tilde{\theta}_{v,k+1}$', ...
-    '$\theta_{v,k}$'});
+    '$\theta_{v,k+1}$'});
 set(l,'interpreter','latex', ...
-    'Position', [0.9149    0.8275    0.0648    0.0953]);
+    'Position', [0.9122,0.7228,0.0742,0.22],...
+    'FontSize',14);
 
 
 % u v t
@@ -151,7 +162,8 @@ grid on; box on;
 l = legend([h_e_v_t,h_u_v_t,h_u_filt_v_t], ...
     {'$\theta_{e,k}$','$\theta_{v,k+1}$','$\hat{\theta}_{v,k+1}$'});
 set(l,'interpreter','latex', ...
-    'Position',[0.9140    0.5692    0.0468    0.0500]);
+    'Position',[0.9139,0.4661,0.0742,0.1233],...
+    'FontSize',14);
 
 
 % e v t | f
@@ -168,7 +180,8 @@ xlabel('Iteration','fontsize',17,'interpreter','latex');
 ylabel('Error','fontsize',17,'interpreter','latex')
 grid on; box on;
 l = legend('$\|e\|_\infty$','$\|e\|_2$','$\|E\|_\infty$','$\|E\|_2$');
-set(l,'interpreter','latex','box','off');
+set(l,'interpreter','latex','box','off',...
+    'FontSize',14);
 
 fig.Position = [3 61 1426 738];
 fig.PaperPosition = [-5.3542,1.3542,19.2083,8.2917];
@@ -198,11 +211,13 @@ Einf_f = [];
 E2_f = [];
 
 % ILC Settings
-adapt = 'gain';
-model = 'average';
-backstepping = 'off';
 maxHarmonic = maxharmonic;
 initial_learning_gain = gain;
+
+% Get directory
+path = 'C:\Users\cpras\Documents\UW\Thesis\Testing';
+% selpath = uigetdir(path); CHANGE
+selpath = uigetdir(pwd);
 
 % Learning Loop
 k=1;
@@ -214,8 +229,8 @@ while(1)
     % Get k trial
     while(1)
         fprintf('\n\t');
-        trial = input('Enter trial name: ','s');
-        fprintf(['\n\t',trial]);
+        trialName = input('Enter trial name: ','s');
+        fprintf(['\n\t',trialName]);
         usr_input = input(' - Is this correct? [y/n] ','s');
         if strcmp('y',usr_input)
             break;
@@ -223,6 +238,7 @@ while(1)
     end
     
     % Data Collection
+    trial  = fullfile(selpath, trialName);
     fprintf('\n\tParsing data...\n');
     rtn.T{k} = cp_process_trial(trial, ...
         'k_t',k_t, ...
@@ -243,13 +259,13 @@ while(1)
         else
             prostheticSide = 'left';
         end
-        mass = rtn.T{k}.params.emb.Total_Mass;
-        rtn.settings.prostheticSide = prostheticSide;
-        rtn.settings.mass = mass;
+        % mass = rtn.T{k}.params.emb.Total_Mass; % CHANGE
+        % rtn.settings.mass = mass; % CHANGE
+        rtn.settings.prostheticSide = prostheticSide;        
         fs = rtn.T{k}.params.model.fs;
         
         fprintf('\tProsthetic Side = %s\n',prostheticSide);
-        fprintf('\tMass = %i\n',mass)
+        % fprintf('\tMass = %i\n',mass)
     end
     
     time = rtn.T{k}.time;
@@ -342,7 +358,8 @@ while(1)
             Y_k_abs_mean = mean(abs(Y_k_all)')';
             Y_k_abs_std = std(abs(Y_k_all)')';
             
-            epsilon = 3.*Y_k_abs_std;
+            % epsilon = 3.*Y_k_abs_std;
+            epsilon = 0.*Y_k_abs_std;
             
             figure;
             title('Standard deviation of output','fontsize',20);
@@ -361,8 +378,8 @@ while(1)
                 'backstepping',backstepping,...
                 'maxHarm',maxHarmonic, ...
                 'rho_max',inf, ...
-                'zeta',1.45, ...
-                'alpha',0.5, ...
+                'zeta',zeta, ...
+                'alpha',alpha, ...
                 'fs', fs);
             
             % 'epsilon', 0,...
@@ -423,9 +440,20 @@ while(1)
         pred = [];
         resp = [];
         % -- Collect training data for all trials collected up to this point
-        for ii = 1:k
-            pred = [pred; rtn.T{ii}.model.LAnkleAngles.X];
-            resp = [resp; interp1(rtn.T{ii}.emb.time, rtn.T{ii}.emb.Ankle_Encoder_Angle, rtn.T{ii}.time)];
+        if strcmp(prostheticSide,'left')
+            for ii = 1:k
+                pred = [pred; rtn.T{ii}.model.LAnkleAngles.X];
+                resp = [resp; interp1(rtn.T{ii}.emb.time,...
+                rtn.T{ii}.emb.Ankle_Encoder_Angle, rtn.T{ii}.time)]; % CHANGE
+                % resp = [resp; (1.2*rtn.T{ii}.model.LAnkleAngles.X)-0.05];
+            end
+        else
+            for ii = 1:k
+                pred = [pred; rtn.T{ii}.model.RAnkleAngles.X];
+                resp = [resp; interp1(rtn.T{ii}.emb.time,...
+                rtn.T{ii}.emb.Ankle_Encoder_Angle, rtn.T{ii}.time)]; % CHANGE
+                % resp = [resp; (1.2*rtn.T{ii}.model.RAnkleAngles.X)-0.05];
+            end
         end
         mdl = fitlm(pred, resp, 'linear', 'RobustOpts', 'off');
         if(0)
@@ -442,22 +470,23 @@ while(1)
         temp = fft(rtn.S{k}.u_kp1_e);
         rtn.S{k}.U_kp1_e = temp(1:(1000/2+1));
         
-        % Torque Check
-        if(0)
-            tau_ref = -mass*(theta_p_emb(2:end)- thetaV_mapped);
-            
-            figure()
-            plot(gaitCycle(2:end), tau_ref, 'r--')
-            hold on
-            plot(gaitCycle(2:end), tau_b(2:end)*mass, 'm')
-            plot(gaitCycle(2:end), tau_p(2:end)*mass, 'b')
-            plot(gaitCycle(2:end), tau_p(2:end)*mass + tau_ref, 'r')
-            xlabel('Gait Percent [%]')
-            ylabel('Ankle Torque [Nm]')
-            legend('Active', 'Biological (Vicon)','Prosthetic (Vicon)', ...
-                'Prosthetic + Active','location', 'best')
-            title({'Desired Torque Trajectory and Vicon Torques',['Gain = ',num2str(-mass)]})
-        end
+        % CHANGE
+%         % Torque Check
+%         if(0)
+%             tau_ref = -mass*(theta_p_emb(2:end)- thetaV_mapped);
+%             
+%             figure()
+%             plot(gaitCycle(2:end), tau_ref, 'r--')
+%             hold on
+%             plot(gaitCycle(2:end), tau_b(2:end)*mass, 'm')
+%             plot(gaitCycle(2:end), tau_p(2:end)*mass, 'b')
+%             plot(gaitCycle(2:end), tau_p(2:end)*mass + tau_ref, 'r')
+%             xlabel('Gait Percent [%]')
+%             ylabel('Ankle Torque [Nm]')
+%             legend('Active', 'Biological (Vicon)','Prosthetic (Vicon)', ...
+%                 'Prosthetic + Active','location', 'best')
+%             title({'Desired Torque Trajectory and Vicon Torques',['Gain = ',num2str(-mass)]})
+%         end
         
         % Phase Variable
         thigh_angle = rtn.T{k}.gait.emb.l.thigh_angle(2:end,2);
@@ -524,48 +553,48 @@ while(1)
         
         % update plots
         set(h_title,'string',['Iteration = ', num2str(k-1)]);
-        set(h_e_v_t,'YData',rad2deg(theta_e));
-        set(h_u_v_t,'YData',rad2deg(rtn.S{k}.u_kp1_e));
-        set(h_u_filt_v_t,'YData',rad2deg(rtn.S{k}.u_kp1_e_filt));
+        set(h_e_v_t,'YData',rad2deg(theta_e)); % encoder angle (2,2) -- blue
+        set(h_u_v_t,'YData',rad2deg(rtn.S{k}.u_kp1_e)); % virtual @ k+1 (2,2) -- green
+        set(h_u_filt_v_t,'YData',rad2deg(rtn.S{k}.u_kp1_e_filt)); % filtered virtual @ k+1 (2,2) - purple
         set(h_stance_2_v_t,'XData',[smooth_vector(1),smooth_vector(1)], ...
             'YData',[min(rad2deg(rtn.S{k}.u_kp1_e_filt)),max(rad2deg(rtn.S{k}.u_kp1_e_filt))]);
         set(h_pre_2_v_t,'XData',[smooth_vector(2),smooth_vector(2)], ...
             'YData',[min(rad2deg(rtn.S{k}.u_kp1_e_filt)),max(rad2deg(rtn.S{k}.u_kp1_e_filt))]);
         
-        set(h_e_kp1_v_t,'YData',rtn.S{k}.u_kp1_e_filt)
+        set(h_e_kp1_v_t,'YData',rtn.S{k}.u_kp1_e_filt) % filtered virtual @ k+1 (2,1) -- purple
         
         if k > 1
-            set(h_u_k_v_t, 'YData',rtn.S{k-1}.u_kp1_filt);
+            set(h_u_k_v_t, 'YData',rtn.S{k-1}.u_kp1_filt); % previous filtered virtual (2,1) -- green
             set(h_U_v_f,'YData',abs(rtn.S{k-1}.U_kp1(1:(maxharmonic+1))));
         end
         
-        set(h_U_kp1_v_f,'YData',abs(rtn.S{k}.U_kp1(1:(maxharmonic+1))));
+        set(h_U_kp1_v_f,'YData',abs(rtn.S{k}.U_kp1(1:(maxharmonic+1)))); % (1,3)
         
-        set(h_U_bar_v_f,'YData',abs(rtn.S{k}.U_bar_k(1:(maxharmonic+1))));
-        set(h_E_bar_v_f,'YData',abs(rtn.S{k}.E_bar_k(1:(maxharmonic+1))));
+        set(h_U_bar_v_f,'YData',abs(rtn.S{k}.U_bar_k(1:(maxharmonic+1)))); % (1,3)
+        set(h_E_bar_v_f,'YData',abs(rtn.S{k}.E_bar_k(1:(maxharmonic+1)))); % (1,2)
         set(h_E_bar_v_f_p_gamma,'YData', ...
             abs(rtn.S{k}.E_bar_k(1:(maxharmonic+1))) ...
-            + rtn.S{k}.params.epsilon)
-        set(h_y_v_t,'YData', rtn.S{k}.y_k);
-        set(h_yd_v_t,'YData',rtn.S{k}.yd_k);
+            + rtn.S{k}.params.epsilon(1:(maxharmonic+1)))  % (1,2)
+        set(h_y_v_t,'YData', rtn.S{k}.y_k);  % (2,1)
+        set(h_yd_v_t,'YData',rtn.S{k}.yd_k); % (2,1)
         
-        set(h_u_kp1_v_t,'YData', rtn.S{k}.u_kp1_filt);
+        set(h_u_kp1_v_t,'YData', rtn.S{k}.u_kp1_filt); % filtered virtual @ k+1 (2,1) -- cyan
         set(h_stance_1_v_t,'XData',[smooth_vector(1),smooth_vector(1)], ...
             'YData',[min(rtn.S{k}.yd_k),max(rtn.S{k}.yd_k)]);
         set(h_pre_1_v_t,'XData',[smooth_vector(2),smooth_vector(2)], ...
             'YData',[min(rtn.S{k}.yd_k),max(rtn.S{k}.yd_k)]);
         
-        set(h_er_inf_t_min,'XData',iinf_t-1,'YData',Einf_t(iinf_t)./Einf_t(1));
-        set(h_er_2_t_min,'XData',i2_t-1,'YData',E2_t(i2_t)./E2_t(1));
-        set(h_er_inf_f_min,'XData',iinf_f-1,'YData',Einf_f(iinf_f)./Einf_f(1));
-        set(h_er_2_f_min,'XData',i2_f-1,'YData',E2_f(i2_f)./E2_f(1));
+        set(h_er_inf_t_min,'XData',iinf_t-1,'YData',Einf_t(iinf_t)./Einf_t(1)); % (2,3)
+        set(h_er_2_t_min,'XData',i2_t-1,'YData',E2_t(i2_t)./E2_t(1));  % (2,3)
+        set(h_er_inf_f_min,'XData',iinf_f-1,'YData',Einf_f(iinf_f)./Einf_f(1)); % (2,3)
+        set(h_er_2_f_min,'XData',i2_f-1,'YData',E2_f(i2_f)./E2_f(1)); % (2,3)
         
         set(h_er_inf_t,'XData',(1:k)-1,'YData',Einf_t(1:k)./Einf_t(1));
         set(h_er_2_t,'XData',(1:k)-1,'YData',E2_t(1:k)./E2_t(1));
         set(h_er_inf_f,'XData',(1:k)-1,'YData',Einf_f(1:k)./Einf_f(1));
         set(h_er_2_f,'XData',(1:k)-1,'YData',E2_f(1:k)./E2_f(1));
         
-        set(h_rho_v_f,'YData',abs(rtn.S{k}.rho_k(1:(maxharmonic+1)).*gain));
+        set(h_rho_v_f,'YData',abs(rtn.S{k}.rho_k(1:(maxharmonic+1))));
         set(h_E_v_f,'YData',abs(rtn.S{k}.E_k(1:(maxharmonic+1))));
         
         % Promt signal sufficient message

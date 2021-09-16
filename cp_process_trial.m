@@ -73,7 +73,7 @@ if (processVicon)
     rtn.params.model = model.params;
     rtn.time = model.time;
     rtn.model = model.id;
-    rtn.markers = model.markers;
+    rtn.markers = model.markers; % CHANGE
 
 end
 

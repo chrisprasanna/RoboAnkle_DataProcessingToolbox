@@ -58,13 +58,15 @@ doplot = 1;
 %
 
 % Check if metadata file exists
-metafile = ['./',trialName,'_metadata.tdms']; 
+% metafile = ['./',trialName,'_metadata.tdms']; 
+metafile = [trialName,'_metadata.tdms']; 
 if exist(metafile,'file') ~= 2
     fprintf('\n\tMetadata file not found\n');
     rtn = []
     return
 end
-[t,~,meta_ChanNames] = convertTDMS(false, 'filename', fullfile(pwd, metafile));
+% [t,~,meta_ChanNames] = convertTDMS(false, 'filename', fullfile(pwd, metafile));
+[t,~,meta_ChanNames] = convertTDMS(false, 'filename', metafile);
 for ii = 3:length(t.Data.MeasuredData)
     group = extractBefore(t.Data.MeasuredData(ii).Name,'/');
     t.Data.MeasuredData(ii).Name = erase(t.Data.MeasuredData(ii).Name,[group,'/']);
@@ -104,7 +106,8 @@ rtn.params.motor.maxMotorRpm = maxMotorRpm;
 %
 
 % Check file exists
-file = ['./',trialName,'_LabView.tdms']; % ['./',trialName];
+% file = ['./',trialName,'_LabView.tdms']; % ['./',trialName];
+file = [trialName,'_LabView.tdms'];
 if exist(file,'file') ~= 2
     fprintf('\n\tEmbedded file not found\n');
     rtn = []
@@ -112,7 +115,8 @@ if exist(file,'file') ~= 2
 end
 
 % Open and Process Datafile
-[s,~,ChanNames,~,~] = convertTDMS(false, 'filename', fullfile(pwd, file));
+% [s,~,ChanNames,~,~] = convertTDMS(false, 'filename', fullfile(pwd, file));
+[s,~,ChanNames,~,~] = convertTDMS(false, 'filename', file);
 for ii = 3:length(s.Data.MeasuredData)
     group = extractBefore(s.Data.MeasuredData(ii).Name,'/');
     s.Data.MeasuredData(ii).Name = erase(s.Data.MeasuredData(ii).Name,[group,'/']);

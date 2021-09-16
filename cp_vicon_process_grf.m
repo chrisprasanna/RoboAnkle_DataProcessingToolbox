@@ -33,9 +33,10 @@ if (processVicon)
     rtn.info.useEmb = 0;
     
     % Parse model file
-    file = ['./',trialName,'_GRF.csv'];
-    rtn.info.file = file;
-    % file = trialName;
+    % file = ['./',trialName,'_GRF.csv'];
+    file = [trialName,'_GRF.csv'];
+    % rtn.info.file = file;
+    [~,rtn.info.file,~] = fileparts(file);
     if (exist(file,'file') ~= 2)
         fprintf('\n\tGRF file not found: %s\n', file);
         rtn = []
@@ -65,10 +66,18 @@ if (processVicon)
     rtn.time = frame.*(1/fs);
     rtn.r.Fx = filtfilt(b,a,D(:,3));
     rtn.r.Fy = filtfilt(b,a,D(:,4));
-    rtn.r.Fz = filtfilt(b,a,D(:,5));
+    if mean(D(:,5)) < 0
+        rtn.l.Fz = -filtfilt(b,a,D(:,5)); % CHANGE
+    else
+        rtn.l.Fz = filtfilt(b,a,D(:,5)); % CHANGE
+    end
     rtn.l.Fx = filtfilt(b,a,D(:,6));
     rtn.l.Fy = filtfilt(b,a,D(:,7));
-    rtn.l.Fz = filtfilt(b,a,D(:,8));
+    if mean(D(:,8)) < 0
+        rtn.r.Fz = -filtfilt(b,a,D(:,8)); % CHANGE
+    else
+        rtn.r.Fz = filtfilt(b,a,D(:,8)); % CHANGE
+    end
 else
    
     rtn.info.useEmb = 1;
@@ -86,6 +95,7 @@ else
 end
 
 % Gait events
+% Right
 threshold = (rtn.r.Fz < eventThreshold);
 dthreshold = threshold(2:end) - threshold(1:end-1);
 
@@ -101,7 +111,10 @@ end
 
 rtn.ge.r.hs_time(:,1) = rtn.time(hs);
 rtn.ge.r.to_time(:,1) = rtn.time(to);
+rtn.ge.r.hs_ind(:,1) = hs;
+rtn.ge.r.to_ind(:,1) = to;
 
+% Left
 threshold = (rtn.l.Fz < eventThreshold);
 dthreshold = threshold(2:end) - threshold(1:end-1);
 

@@ -1,4 +1,4 @@
-function S_k = cp_ilc(yd_k, y_k, S_km1, varargin)
+function S_k = cp_ilc_edit(yd_k, y_k, S_km1, varargin)
 % adaptiveILC Iterative learning control with adaptive learning gains.
 %
 % name-value pairs:
@@ -206,13 +206,13 @@ U_bar_km1 = S_km1.U_bar_k;
 E_km1 = S_km1.E_k;
 E_hat_km1 = S_km1.E_hat_k;
 
-% Freq where mag of error has increased relative to best error + pad
+% Freq where mag of error has increased error + pad
 E_incr = abs(E_k) > (abs(E_bar_km1) + epsilon);
-E_decr = ~(E_incr);
 
-% Freq the magnitude of error has increased relative to best - pad
-E_decr = abs(E_k) <= (abs(E_bar_km1) - epsilon);
-E_no_decr = ~(E_decr);
+% Freq the magnitude of error has decreased error - pad
+E_decr = abs(E_k) < (abs(E_bar_km1) - epsilon);
+
+E_inside_pad = ~(E_decr) & ~(E_incr);
 
 % Deadzone
 DZ = abs(E_k) < ((1/100).*abs(Yd_k));
@@ -263,12 +263,14 @@ end
 
 % Updates
 if strcmp(S_km1.params.adapt,'gain')
+
     rho_k = (~DZ).*((E_incr .* rho_km1*alpha)...
-        + (E_decr .* rho_km1*zeta)) ...
+                  + (E_decr .* rho_km1*zeta) ...
+                  + (E_inside_pad .* rho_km1)) ...
         + (DZ).*(rho_km1);
     rho_k(abs(rho_k) > rho_max) = rho_max ...
         *exp(1j.*angle(rho_k(abs(rho_k) > rho_max)));
-    
+
 elseif strcmp(S_km1.params.adapt,'gain-phase')
     phasor = exp(1j*-deg2rad(phi));
     rho_k = E_no_decr .* rho_km1*alpha.*phasor...
@@ -298,6 +300,8 @@ S_k.E_hat_k = E_hat_k;
 
 % Update Struct Members
 S_k.rho_k = rho_k;
+
+
 S_k.Yd_k = Yd_k;
 S_k.yd_k = yd_k;
 S_k.Y_k = Y_k;

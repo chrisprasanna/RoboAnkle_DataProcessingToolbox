@@ -22,7 +22,8 @@ end
 debug = 0;
 
 % Parse model file
-file = fullfile(cd, [trialName,'_Model.csv']);
+% file = fullfile(cd, [trialName,'_Model.csv']);
+file = [trialName,'_Model.csv'];
 if exist(file,'file') ~= 2
     fprintf('\n\tModel file not found: %s\n', file);
     rtn = []
@@ -32,7 +33,8 @@ end
 fid = fopen(file,'r');
 
 % Store trialName
-rtn.info.file = file;
+% rtn.info.file = file;
+[~,rtn.info.file,~] = fileparts(file);
 rtn.params.processing_cutOff = cutOff;
 
 % skip two words, go next line, grab sample freq
@@ -229,6 +231,7 @@ for i=1:(labelCnt/3)
     
 end
 
+% CHANGE
 % Marker Trajectories
 % skip line
 tline = fgetl(fid);
